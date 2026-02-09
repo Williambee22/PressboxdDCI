@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row between" style="align-items:flex-end;">
+  <div>
+    <div class="kicker">Social</div>
+    <h1 style="margin:6px 0 0;">Friends</h1>
+    <div class="muted small">Friends are mutual (request → accept).</div>
+  </div>
+</div>
+
+<div class="layout" style="margin-top:14px;">
+  <section>
+    <div class="panel">
+      <div class="kicker">Your friends</div>
+
+      {% if friends and friends|length > 0 %}
+        <div class="stack" style="margin-top:12px;">
+          {% for u in friends %}
+            <div class="row between" style="align-items:center;">
+              <div class="row gap" style="align-items:center;">
+                <span class="avatar_sm">
+                  {% if u["avatar_url"] %}<img src="{{ u['avatar_url'] }}" alt="avatar">{% else %}<span class="avatar_fallback"></span>{% endif %}
+                </span>
+                <a class="reviewuser" href="{{ url_for('user_profile', username=u['username']) }}">{{ u["username"] }}</a>
+              </div>
+              <form method="post" action="{{ url_for('friend_remove', username=u['username']) }}">
+                <button class="btn ghost" type="submit">Remove</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted" style="margin-top:10px;">No friends yet.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="panel">
+      <div class="kicker">Incoming requests</div>
+
+      {% if incoming and incoming|length > 0 %}
+        <div class="stack" style="margin-top:12px;">
+          {% for u in incoming %}
+            <div class="row between" style="align-items:center;">
+              <div class="row gap" style="align-items:center;">
+                <span class="avatar_sm">
+                  {% if u["avatar_url"] %}<img src="{{ u['avatar_url'] }}" alt="avatar">{% else %}<span class="avatar_fallback"></span>{% endif %}
+                </span>
+                <a class="reviewuser" href="{{ url_for('user_profile', username=u['username']) }}">{{ u["username"] }}</a>
+              </div>
+
+              <div class="row gap">
+                <form method="post" action="{{ url_for('friend_accept', username=u['username']) }}">
+                  <button class="btn green" type="submit">Accept</button>
+                </form>
+                <form method="post" action="{{ url_for('friend_decline', username=u['username']) }}">
+                  <button class="btn ghost" type="submit">Decline</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted" style="margin-top:10px;">No incoming requests.</div>
+      {% endif %}
+    </div>
+  </aside>
+</div>
+
+{% endblock %}

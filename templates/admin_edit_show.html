@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row between" style="margin-top:10px;">
+  <div>
+    <div class="kicker">Admin</div>
+    <h1 style="margin:6px 0 0;">Edit Show</h1>
+    <div class="muted small">Update metadata or the poster image URL.</div>
+  </div>
+  <a class="btn ghost" href="{{ url_for('show_detail', show_id=s['id']) }}">Back</a>
+</div>
+
+<div class="panel" style="margin-top:14px; max-width:720px;">
+  <form method="post" action="{{ url_for('admin_edit_show_post', show_id=s['id']) }}">
+    <div class="field">
+      <label>Title</label>
+      <input name="title" value="{{ s['title'] }}" required />
+    </div>
+
+    <div class="field">
+      <label>Corps</label>
+      <input name="corps" value="{{ s['corps'] }}" required />
+    </div>
+
+    <div class="field">
+      <label>Year</label>
+      <input name="year" value="{{ s['year'] }}" required />
+    </div>
+
+    <!-- Poster upload (drag & drop) -->
+<div class="field" style="margin-top:14px;">
+  <label>Show poster</label>
+
+  <div class="dropzone" id="posterDrop">
+    <div class="dropzone_inner">
+      <div class="muted">Drag & drop an image here, or click to choose</div>
+      <div class="muted small">PNG / JPG / WEBP • saved into <code>/static/posters/</code></div>
+    </div>
+  </div>
+
+  <form id="posterUploadForm"
+        method="post"
+        action="{{ url_for('admin_upload_show_poster', show_id=s['id']) }}"
+        enctype="multipart/form-data"
+        style="margin-top:10px;">
+    <input type="file" id="posterFileReal" name="poster_file" accept="image/*" hidden>
+    <button class="btn green" type="submit" id="posterUploadBtn" style="display:none;">Upload</button>
+  </form>
+
+  {% if s["poster_url"] %}
+    <div style="margin-top:10px;">
+      <div class="muted small">Current:</div>
+      <img src="{{ s['poster_url'] }}" alt="poster"
+           style="width:160px; height:auto; display:block; margin-top:6px; border:1px solid #333;">
+    </div>
+  {% endif %}
+</div>
+
+<script>
+(function(){
+  const drop = document.getElementById("posterDrop");
+  const input = document.getElementById("posterFileReal");
+  const form = document.getElementById("posterUploadForm");
+  const btn  = document.getElementById("posterUploadBtn");
+
+  function setFile(file){
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    btn.style.display = "inline-block";
+  }
+
+  // click-to-pick
+  drop.addEventListener("click", () => {
+    input.click();
+  });
+
+  input.addEventListener("change", () => {
+    if (input.files && input.files[0]) {
+      btn.style.display = "inline-block";
+      form.submit(); // auto-upload
+    }
+  });
+
+  drop.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    drop.classList.add("hover");
+  });
+
+  drop.addEventListener("dragleave", () => drop.classList.remove("hover"));
+
+  drop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    drop.classList.remove("hover");
+
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+
+    setFile(file);
+    form.submit(); // auto-upload
+  });
+})();
+</script>
+
+{% endblock %}

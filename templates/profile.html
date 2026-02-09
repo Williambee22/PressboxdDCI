@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block content %}
+
+{# ----------------------------
+   SAFE "is_me" (no .get on sqlite3.Row)
+   If Python already passes is_me=True/False, we keep it.
+   Otherwise compute it safely.
+---------------------------- #}
+{% if is_me is not defined %}
+  {% set me_username = (me["username"] if me is not none and "username" in me else None) %}
+  {% set pu_username = (profile_user["username"] if profile_user is not none and "username" in profile_user else None) %}
+  {% set is_me = (me_username is not none and pu_username is not none and me_username == pu_username) %}
+{% endif %}
+
+{# ----------------------------
+   TOP ACTION ROW: followers/following + follow/friend buttons
+   (ONE place only, above the hero)
+---------------------------- #}
+{% if profile_user is not none and "username" in profile_user %}
+  <div class="row gap" style="margin-top:10px; flex-wrap:wrap; align-items:center;">
+
+    <a class="badge muted" href="{{ url_for('user_followers', username=profile_user['username']) }}">
+      Followers: {{ profile_user["followers_count"] if "followers_count" in profile_user else 0 }}
+    </a>
+
+    <a class="badge muted" href="{{ url_for('user_following', username=profile_user['username']) }}">
+      Following: {{ profile_user["following_count"] if "following_count" in profile_user else 0 }}
+    </a>
+
+    {% if me and not is_me %}
+
+      {# Follow / Unfollow #}
+      {% if "viewer_is_following" in profile_user and profile_user["viewer_is_following"] %}
+        <form method="post" action="{{ url_for('unfollow_user', username=profile_user['username']) }}">
+          <button class="btn ghost" type="submit">Unfollow</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('follow_user', username=profile_user['username']) }}">
+          <button class="btn green" type="submit">Follow</button>
+        </form>
+      {% endif %}
+
+      {# Friends #}
+      {% set fs = (profile_user["viewer_friend_status"] if "viewer_friend_status" in profile_user else "none") %}
+      {% if fs == "friends" %}
+        <form method="post" action="{{ url_for('friend_remove', username=profile_user['username']) }}">
+          <button class="btn ghost" type="submit">Remove friend</button>
+        </form>
+      {% elif fs == "pending_out" %}
+        <span class="badge muted">Friend request sent</span>
+      {% elif fs == "pending_in" %}
+        <form method="post" action="{{ url_for('friend_accept', username=profile_user['username']) }}">
+          <button class="btn green" type="submit">Accept friend</button>
+        </form>
+        <form method="post" action="{{ url_for('friend_decline', username=profile_user['username']) }}">
+          <button class="btn ghost" type="submit">Decline</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('friend_request', username=profile_user['username']) }}">
+          <button class="btn ghost" type="submit">Add friend</button>
+        </form>
+      {% endif %}
+
+    {% endif %}
+
+    {% if is_me %}
+      <a class="btn ghost" href="{{ url_for('my_friends') }}">Friends</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+{# ----------------------------
+   HERO (ONE hero block only)
+---------------------------- #}
+<div class="profile_hero"
+  {% if profile_user is not none and "banner_url" in profile_user and profile_user["banner_url"] %}
+    style="--pBanner:url('{{ profile_user['banner_url'] }}');"
+  {% endif %}>
+
+  <div class="profile_hero_inner"
+    {% if profile_user is not none and "theme_color" in profile_user and profile_user["theme_color"] %}
+      style="--pAccent: {{ profile_user['theme_color'] }};"
+    {% endif %}>
+
+    <div class="row gap" style="align-items:center;">
+
+      <div class="avatar_lg">
+        {% if profile_user is not none and "avatar_url" in profile_user and profile_user["avatar_url"] %}
+          <img src="{{ profile_user['avatar_url'] }}" alt="avatar">
+        {% else %}
+          <div class="avatar_fallback"></div>
+        {% endif %}
+      </div>
+
+      <div style="min-width:0;">
+        <div class="kicker">Profile</div>
+        <h1 style="margin:6px 0 0;">
+          {{ profile_user["username"] if profile_user is not none and "username" in profile_user else "User" }}
+        </h1>
+
+        {% if user_roles and user_roles|length > 0 %}
+          <div class="row gap" style="margin-top:10px; flex-wrap:wrap;">
+            {% for r in user_roles %}
+              <span class="role_tag"
+                {% if r is not none and "color" in r and r["color"] %}
+                  style="border-color: {{ r['color'] }}; color: {{ r['color'] }};"
+                {% endif %}>
+                {{ r["name"] if r is not none and "name" in r else "" }}
+              </span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="muted small">{% if is_me %}This is you.{% endif %}</div>
+
+        {% if is_me and profile_user is not none and "username" in profile_user %}
+          <div class="row gap" style="margin-top:10px;">
+            <a class="btn ghost" href="{{ url_for('customize_profile') }}">Customize</a>
+            <a class="btn ghost" href="{{ url_for('user_profile', username=profile_user['username']) }}">View public</a>
+          </div>
+        {% endif %}
+      </div>
+
+      {# Average rating box on the RIGHT of the hero #}
+      <div class="profile_avg_box">
+        <div class="kicker">Avg rating</div>
+        {% set c = (profile_user["avg_rating_cnt"] if profile_user is not none and "avg_rating_cnt" in profile_user and profile_user["avg_rating_cnt"] is not none else 0) %}
+        {% if c > 0 %}
+          <div class="profile_avg_value">
+            <span class="profile_avg_star">★</span>
+            {{ "%.2f"|format(profile_user["avg_rating"] if profile_user is not none and "avg_rating" in profile_user else 0) }}
+          </div>
+          <div class="muted small">{{ c }} ratings</div>
+        {% else %}
+          <div class="muted">No ratings</div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ----------------------------
+   LAYOUT: stats left, content right
+---------------------------- #}
+<div class="profile_layout" style="margin-top:16px;">
+
+  <aside class="profile_side">
+    <div class="panel profile_stats">
+      <div class="kicker">Stats</div>
+      <div class="muted small" style="margin-top:10px;">
+        Ratings shown: {{ (recent_ratings|length) if recent_ratings else 0 }}<br/>
+        Reviews shown: {{ (recent_reviews|length) if recent_reviews else 0 }}
+      </div>
+
+      {# OPTIONAL: admin quick link to assign roles to this user (only show for admins) #}
+      {% if me and "is_admin" in me and me["is_admin"] == 1 and profile_user is not none and "username" in profile_user %}
+        <div style="margin-top:10px;">
+          <a class="btn ghost" href="{{ url_for('admin_user_roles', username=profile_user['username']) }}">Roles</a>
+        </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <section class="stack">
+
+    <!-- Recent ratings -->
+    <div class="panel">
+      <div class="kicker">Recent ratings</div>
+
+      {% if recent_ratings and recent_ratings|length > 0 %}
+        <div class="postergrid" style="margin-top:12px;">
+          {% for rr in recent_ratings %}
+            <a class="poster" href="{{ url_for('show_detail', show_id=rr['show_id']) }}">
+              <div class="poster_art">
+                {% if rr is not none and "poster_url" in rr and rr["poster_url"] %}
+                  <img class="poster_img" src="{{ rr['poster_url'] }}" alt="{{ rr['title'] }} poster" loading="lazy">
+                {% else %}
+                  <div class="poster_fallback"></div>
+                {% endif %}
+
+                {% set rh = rr["rating_half"] if rr is not none and "rating_half" in rr and rr["rating_half"] is not none else 0 %}
+                <div class="tile_rating">
+                  <span class="tile_star">★</span> {{ "%.1f"|format(rh / 2.0) }}
+                </div>
+
+                {% if rr is not none and "year" in rr %}
+                  <div class="tile_year">{{ rr["year"] }}</div>
+                {% endif %}
+              </div>
+
+              <div class="poster_meta">
+                <div class="poster_title">{{ rr["title"] if rr is not none and "title" in rr else "" }}</div>
+                <div class="poster_sub">{{ rr["corps"] if rr is not none and "corps" in rr else "" }}</div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted" style="margin-top:8px;">No ratings yet.</div>
+      {% endif %}
+    </div>
+
+    <!-- PFP upload (only for self) -->
+    {% if is_me %}
+      <div class="panel">
+        <div class="kicker">Profile picture</div>
+
+        <div class="field" style="margin-top:10px;">
+          <label>Upload</label>
+
+          <div class="dropzone" id="pfpDrop">
+            <div class="dropzone_inner">
+              <div class="muted">Drag & drop an image here, or click to choose</div>
+              <div class="muted small">PNG / JPG / WEBP • auto-saved as <code>pfp_username.ext</code></div>
+            </div>
+          </div>
+
+          <form id="pfpUploadForm" method="post" action="{{ url_for('upload_my_pfp') }}" enctype="multipart/form-data">
+            <input type="file" id="pfpFileReal" name="pfp_file" accept="image/*" hidden>
+            <button class="btn green" type="submit" id="pfpUploadBtn" style="margin-top:10px; display:none;">Upload</button>
+          </form>
+
+          {% if profile_user is not none and "avatar_url" in profile_user and profile_user["avatar_url"] %}
+            <div style="margin-top:10px;">
+              <div class="muted small">Current:</div>
+              <img src="{{ profile_user['avatar_url'] }}" alt="pfp"
+                   style="width:96px; height:96px; object-fit:cover; display:block; margin-top:6px;">
+            </div>
+          {% endif %}
+        </div>
+
+        <script>
+        (function(){
+          const drop = document.getElementById("pfpDrop");
+          const hiddenInput = document.getElementById("pfpFileReal");
+          const btn = document.getElementById("pfpUploadBtn");
+          const form = document.getElementById("pfpUploadForm");
+          if (!drop || !hiddenInput || !form) return;
+
+          function setFile(file){
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            hiddenInput.files = dt.files;
+            if (btn) btn.style.display = "inline-block";
+          }
+
+          drop.addEventListener("click", () => {
+            const picker = document.createElement("input");
+            picker.type = "file";
+            picker.accept = "image/*";
+            picker.onchange = () => {
+              if (picker.files && picker.files[0]) {
+                setFile(picker.files[0]);
+                form.submit();
+              }
+            };
+            picker.click();
+          });
+
+          drop.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            drop.classList.add("hover");
+          });
+          drop.addEventListener("dragleave", () => drop.classList.remove("hover"));
+
+          drop.addEventListener("drop", (e) => {
+            e.preventDefault();
+            drop.classList.remove("hover");
+            const file = e.dataTransfer.files && e.dataTransfer.files[0];
+            if (!file) return;
+            setFile(file);
+            form.submit();
+          });
+        })();
+        </script>
+      </div>
+    {% endif %}
+
+    <!-- Recent reviews -->
+    <div class="panel">
+      <div class="kicker">Recent reviews</div>
+
+      {% if recent_reviews and recent_reviews|length > 0 %}
+        <div class="reviewlist" style="margin-top:12px;">
+          {% for rv in recent_reviews %}
+            <div class="reviewcard">
+              <div class="small">
+                <a class="reviewuser" href="{{ url_for('show_detail', show_id=rv['show_id']) }}">
+                  {{ rv["title"] if rv is not none and "title" in rv else "Show" }}
+                </a>
+
+                {% if rv is not none and "year" in rv and "corps" in rv %}
+                  <span class="muted">• {{ rv["year"] }} — {{ rv["corps"] }}</span>
+                {% endif %}
+
+                {% if rv is not none and "rating_half" in rv and rv["rating_half"] is not none %}
+                  <span class="muted">• ★ {{ "%.1f"|format(rv["rating_half"]/2.0) }}</span>
+                {% endif %}
+              </div>
+
+              <div class="reviewtext">“{{ rv["review_text"] if rv is not none and "review_text" in rv else "" }}”</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted" style="margin-top:8px;">No reviews yet.</div>
+      {% endif %}
+    </div>
+
+  </section>
+</div>
+
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="panel">
+  <div class="kicker">Following</div>
+  <h1 style="margin:6px 0 0;">{{ profile_user["username"] }}</h1>
+
+  {% if rows and rows|length > 0 %}
+    <div class="stack" style="margin-top:12px;">
+      {% for u in rows %}
+        <div class="row between" style="align-items:center;">
+          <div class="row gap" style="align-items:center;">
+            <span class="avatar_sm">
+              {% if u["avatar_url"] %}<img src="{{ u['avatar_url'] }}" alt="avatar">{% else %}<span class="avatar_fallback"></span>{% endif %}
+            </span>
+            <a class="reviewuser" href="{{ url_for('user_profile', username=u['username']) }}">{{ u["username"] }}</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="muted" style="margin-top:10px;">Not following anyone yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

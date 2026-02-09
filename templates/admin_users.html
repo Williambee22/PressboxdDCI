@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="panel">
+  <div class="kicker">Admin</div>
+  <h1 style="margin:6px 0 14px;">Users</h1>
+
+  {% if users and users|length > 0 %}
+    <div class="stack">
+      {% for u in users %}
+        <div class="row between" style="align-items:center;">
+          <div>
+            <div style="font-weight:800;">{{ u["username"] }}</div>
+            <div class="muted small">{% if u["is_admin"] == 1 %}Admin{% else %}User{% endif %}</div>
+          </div>
+
+          <div class="row gap" style="align-items:center;">
+            <a class="btn ghost" href="{{ url_for('user_profile', username=u['username']) }}">Profile</a>
+            <a class="btn green" href="{{ url_for('admin_user_roles', username=u['username']) }}">Assign roles</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="muted">No users found.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
