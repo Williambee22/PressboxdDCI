@@ -29,7 +29,7 @@ ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 MAX_UPLOAD_MB = 5
 
 APP_SECRET = os.getenv("APP_SECRET", "dev-secret-change-me")
-DB_PATH = os.getenv("DB_PATH", os.path.join(os.getcwd(), "/data/site.db"))
+DB_PATH =/data/site.db
 
 def get_conn():
     # timeout helps with brief lock contention
@@ -1175,4 +1175,5 @@ if __name__ == "__main__":
     # Local dev only
 
     app.run(debug=True)
+
 
