@@ -18,4 +18,10 @@ if [ ! -f "$DB_PATH" ]; then
 fi
 
 # Start gunicorn (1 worker is safest for SQLite)
+
+#!/usr/bin/env bash
+set -e
+
+python -m pip install -U pip setuptools wheel
+
 exec gunicorn -w 1 -b 0.0.0.0:${PORT:-8080} app:app
